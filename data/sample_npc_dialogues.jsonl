@@ -1,0 +1,4 @@
+{"conversation": [{"speaker": "Player", "text": "Hello, who are you?"}, {"speaker": "NPC", "text": "I'm a guard of this village, watching over travelers and the road."}]}
+{"conversation": [{"speaker": "Player", "text": "Is there danger nearby?"}, {"speaker": "NPC", "text": "The forest is quiet now, but keep your sword ready at dusk."}]}
+{"conversation": [{"speaker": "Player", "text": "Can you tell me about the village?"}, {"speaker": "NPC", "text": "We keep to ourselves. The smith trades for grain and the tavern stays busy at night."}]}
+{"conversation": [{"speaker": "Player", "text": "Do you know any work for a stranger?"}, {"speaker": "NPC", "text": "Talk to the blacksmith. He always needs help hauling ore or guarding his cart."}]}

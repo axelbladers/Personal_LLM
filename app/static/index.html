@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NPC Chat Demo</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, Arial, sans-serif;
+      background: #11131d;
+      color: #f6f7fb;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: radial-gradient(circle at top, #2b2f54 0%, #11131d 70%);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 840px;
+      background: rgba(23, 26, 42, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    h1 { margin: 0; font-size: clamp(2rem, 2.5vw, 2.6rem); }
+    p.subtitle { margin: 8px 0 0; color: #abb2d6; }
+
+    textarea {
+      width: 100%;
+      min-height: 130px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 18px;
+      background: #121427;
+      color: #f7f8ff;
+      resize: vertical;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      padding: 14px 22px;
+      font-size: 1rem;
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(135deg, #6f7dff, #5d61f0);
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+
+    button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .hint {
+      color: #7e88b7;
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .chat-box {
+      margin-top: 16px;
+      background: #171a30;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      padding: 18px;
+      min-height: 220px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .message {
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      line-height: 1.65;
+      white-space: pre-wrap;
+    }
+
+    .message.player { border-left: 4px solid #6f7dff; }
+    .message.npc { border-left: 4px solid #33d6a6; }
+
+    .message strong { display: block; margin-bottom: 8px; color: #d6d9ff; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>NPC Chat Demo</h1>
+        <p class="subtitle">Send a player line and receive a dynamic NPC response from the local model.</p>
+      </div>
+      <div>
+        <button id="clear">Clear</button>
+      </div>
+    </div>
+
+    <textarea id="player_line" placeholder="Enter the player dialogue here..."></textarea>
+    <div class="controls">
+      <button id="send" type="button">Send</button>
+      <p class="hint">The chat is powered by the /chat API endpoint.</p>
+    </div>
+
+    <div class="chat-box" id="chat_box">
+      <div class="message npc"><strong>NPC:</strong> NPC responses will appear here after you send a line.</div>
+    </div>
+  </div>
+
+  <script>
+    const sendButton = document.getElementById('send');
+    const clearButton = document.getElementById('clear');
+    const playerLine = document.getElementById('player_line');
+    const chatBox = document.getElementById('chat_box');
+
+    function addMessage(role, text) {
+      const el = document.createElement('div');
+      el.className = `message ${role}`;
+      el.innerHTML = `<strong>${role === 'player' ? 'Player' : 'NPC'}:</strong> ${text}`;
+      chatBox.appendChild(el);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function showStatus(message) {
+      const status = document.createElement('div');
+      status.className = 'message npc';
+      status.innerHTML = `<strong>Status:</strong> ${message}`;
+      chatBox.appendChild(status);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    sendButton.addEventListener('click', async () => {
+      const text = playerLine.value.trim();
+      if (!text) {
+        showStatus('Please enter a player line before sending.');
+        return;
+      }
+
+      sendButton.disabled = true;
+      addMessage('player', text);
+      showStatus('Generating NPC response...');
+
+      try {
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ player_line: text }),
+        });
+
+        const data = await res.json();
+        chatBox.lastChild.remove();
+
+        if (!res.ok) {
+          showStatus(data.detail || 'Failed to generate a response.');
+        } else {
+          addMessage('npc', data.npc_response || 'No response returned.');
+        }
+      } catch (error) {
+        chatBox.lastChild.remove();
+        showStatus('Connection error: ' + error.message);
+      } finally {
+        sendButton.disabled = false;
+      }
+    });
+
+    clearButton.addEventListener('click', () => {
+      chatBox.innerHTML = '<div class="message npc"><strong>NPC:</strong> NPC responses will appear here after you send a line.</div>';
+      playerLine.value = '';
+    });
+  </script>
+</body>
+</html>
