@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>NPC Dialogue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --ink:      #0d0c0a;
+  --parch:    #f5ede0;
+  --parch2:   #ede0cc;
+  --gold:     #b8860b;
+  --gold-lt:  #d4a820;
+  --rust:     #8b3a1a;
+  --rust-lt:  #c04a20;
+  --stone:    #2a2520;
+  --stone2:   #3d3730;
+  --stone3:   #524a40;
+  --mist:     #7a6e60;
+  --mist-lt:  #a09080;
+  --ember:    #e8540a;
+  --cream:    #faf4ea;
+  --shadow:   rgba(0,0,0,0.6);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--ink);
+  color: var(--parch);
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(184,134,11,0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 80% at 80% 100%, rgba(139,58,26,0.08) 0%, transparent 60%),
+    #0d0c0a;
+}
+
+/* ── Header ─────────────────────────────────────────── */
+header {
+  width: 100%;
+  max-width: 900px;
+  padding: 32px 24px 0;
+  text-align: center;
+}
+
+.title-lock {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.title-ornament {
+  font-size: 11px;
+  letter-spacing: 6px;
+  color: var(--gold);
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+h1 {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 600;
+  color: var(--gold-lt);
+  letter-spacing: 2px;
+  text-shadow: 0 0 40px rgba(184,134,11,0.3);
+  line-height: 1.1;
+}
+
+.title-rule {
+  width: 180px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  margin: 8px 0 4px;
+}
+
+/* ── Status bar ──────────────────────────────────────── */
+#status-bar {
+  font-size: 13px;
+  color: var(--mist);
+  padding: 10px 24px;
+  letter-spacing: 0.5px;
+  transition: color 0.3s;
+}
+#status-bar.ok    { color: #7ab87a; }
+#status-bar.error { color: var(--rust-lt); }
+
+/* ── Layout ──────────────────────────────────────────── */
+.layout {
+  width: 100%;
+  max-width: 900px;
+  padding: 0 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+/* ── NPC Selector ────────────────────────────────────── */
+.npc-shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.npc-card {
+  background: var(--stone);
+  border: 1px solid var(--stone3);
+  border-radius: 6px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+}
+
+.npc-card:hover { background: var(--stone2); transform: translateY(-1px); }
+
+.npc-card.active {
+  border-color: var(--gold);
+  background: var(--stone2);
+  box-shadow: 0 0 18px rgba(184,134,11,0.15), inset 0 0 0 1px rgba(184,134,11,0.1);
+}
+
+.npc-avatar { font-size: 24px; flex-shrink: 0; }
+
+.npc-meta { min-width: 0; }
+
+.npc-name {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold-lt);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.npc-title {
+  font-size: 12px;
+  color: var(--mist);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Scroll hint (active NPC location) ──────────────── */
+#npc-location {
+  font-size: 13px;
+  color: var(--mist);
+  font-style: italic;
+  letter-spacing: 0.3px;
+  min-height: 18px;
+  padding: 0 2px;
+  transition: opacity 0.3s;
+}
+
+/* ── Chat window ─────────────────────────────────────── */
+#chat-window {
+  flex: 1;
+  min-height: 340px;
+  max-height: 460px;
+  overflow-y: auto;
+  background: var(--stone);
+  border: 1px solid var(--stone3);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scroll-behavior: smooth;
+}
+
+#chat-window::-webkit-scrollbar { width: 5px; }
+#chat-window::-webkit-scrollbar-track { background: transparent; }
+#chat-window::-webkit-scrollbar-thumb { background: var(--stone3); border-radius: 3px; }
+
+/* ── Messages ────────────────────────────────────────── */
+.msg {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: fadeUp 0.22s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.msg-label {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.msg.player .msg-label { color: var(--mist-lt); }
+.msg.npc    .msg-label { color: var(--gold); }
+
+.msg-body {
+  padding: 12px 16px;
+  border-radius: 5px;
+  line-height: 1.7;
+  font-size: 16.5px;
+}
+
+.msg.player .msg-body {
+  background: rgba(122, 110, 96, 0.18);
+  border-left: 3px solid var(--stone3);
+  color: var(--parch2);
+  font-style: italic;
+  align-self: flex-end;
+  max-width: 80%;
+}
+
+.msg.npc .msg-body {
+  background: rgba(184,134,11,0.07);
+  border-left: 3px solid var(--gold);
+  color: var(--cream);
+  max-width: 88%;
+}
+
+.msg.system .msg-body {
+  background: transparent;
+  border-left: 3px solid var(--rust);
+  color: var(--mist);
+  font-size: 14px;
+  font-style: italic;
+  padding: 8px 14px;
+}
+
+/* Typing cursor */
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--gold);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 0.7s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ── Input row ───────────────────────────────────────── */
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+#player-input {
+  flex: 1;
+  background: var(--stone);
+  border: 1px solid var(--stone3);
+  border-radius: 6px;
+  padding: 12px 16px;
+  color: var(--parch);
+  font-family: 'Crimson Pro', serif;
+  font-size: 16px;
+  line-height: 1.5;
+  resize: none;
+  min-height: 52px;
+  max-height: 140px;
+  overflow-y: auto;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+#player-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(184,134,11,0.12);
+}
+
+#player-input::placeholder { color: var(--mist); opacity: 0.6; font-style: italic; }
+
+.btn {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 1px solid;
+  border-radius: 5px;
+  padding: 12px 18px;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  height: 52px;
+}
+
+.btn-send {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--ink);
+}
+
+.btn-send:hover:not(:disabled) {
+  background: var(--gold-lt);
+  border-color: var(--gold-lt);
+  box-shadow: 0 0 16px rgba(184,134,11,0.35);
+}
+
+.btn-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-clear {
+  background: transparent;
+  border-color: var(--stone3);
+  color: var(--mist);
+}
+
+.btn-clear:hover { border-color: var(--mist); color: var(--parch2); }
+
+/* ── Footer ──────────────────────────────────────────── */
+footer {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--stone3);
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-lock">
+    <span class="title-ornament">✦ Tales of the Realm ✦</span>
+    <h1>NPC Dialogue</h1>
+    <div class="title-rule"></div>
+    <span class="title-ornament">Powered by Local LLM</span>
+  </div>
+  <div id="status-bar">Checking connection…</div>
+</header>
+
+<div class="layout">
+
+  <!-- NPC selector -->
+  <div class="npc-shelf" id="npc-shelf">
+    <!-- populated by JS -->
+  </div>
+
+  <div id="npc-location"></div>
+
+  <!-- Chat window -->
+  <div id="chat-window">
+    <div class="msg system">
+      <div class="msg-body">Choose a character above, then speak to them.</div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-row">
+    <textarea id="player-input" rows="1" placeholder="What do you say…" disabled></textarea>
+    <button class="btn btn-send" id="btn-send" disabled>Send</button>
+    <button class="btn btn-clear" id="btn-clear">Clear</button>
+  </div>
+
+</div>
+
+<footer>Local LLM · No cloud · No tracking</footer>
+
+<script>
+const SESSION_ID = 'sess_' + Math.random().toString(36).slice(2);
+let activeNPC = null;
+let streaming  = false;
+
+const shelf      = document.getElementById('npc-shelf');
+const chatWindow = document.getElementById('chat-window');
+const input      = document.getElementById('player-input');
+const btnSend    = document.getElementById('btn-send');
+const btnClear   = document.getElementById('btn-clear');
+const statusBar  = document.getElementById('status-bar');
+const npcLoc     = document.getElementById('npc-location');
+
+// ── Health check ──────────────────────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    const r = await fetch('/health');
+    const d = await r.json();
+    if (d.ollama_reachable) {
+      statusBar.textContent = `Ollama connected · Model: ${d.model}`;
+      statusBar.className = 'ok';
+    } else {
+      statusBar.textContent = `⚠ Ollama not running — start it with: ollama serve && ollama pull ${d.model}`;
+      statusBar.className = 'error';
+    }
+  } catch {
+    statusBar.textContent = '⚠ Server unreachable';
+    statusBar.className = 'error';
+  }
+}
+
+// ── Load NPCs ─────────────────────────────────────────────────────────────────
+async function loadNPCs() {
+  const r = await fetch('/npcs');
+  const npcs = await r.json();
+
+  npcs.forEach(npc => {
+    const card = document.createElement('div');
+    card.className = 'npc-card';
+    card.dataset.id = npc.id;
+    card.innerHTML = `
+      <div class="npc-avatar">${npc.avatar}</div>
+      <div class="npc-meta">
+        <div class="npc-name">${npc.name}</div>
+        <div class="npc-title">${npc.title}</div>
+      </div>`;
+    card.addEventListener('click', () => selectNPC(npc));
+    shelf.appendChild(card);
+  });
+
+  // Store full NPC data
+  shelf._npcs = Object.fromEntries(npcs.map(n => [n.id, n]));
+}
+
+// ── Select NPC ────────────────────────────────────────────────────────────────
+function selectNPC(npc) {
+  if (streaming) return;
+  activeNPC = npc;
+
+  document.querySelectorAll('.npc-card').forEach(c => c.classList.toggle('active', c.dataset.id === npc.id));
+  npcLoc.textContent = `📍 ${npc.location}`;
+
+  input.disabled = false;
+  btnSend.disabled = false;
+  input.placeholder = `Speak to ${npc.name}…`;
+  input.focus();
+}
+
+// ── Message rendering ─────────────────────────────────────────────────────────
+function addMessage(role, label, text) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `<span class="msg-label">${label}</span><div class="msg-body">${escHtml(text)}</div>`;
+  chatWindow.appendChild(div);
+  scrollBottom();
+  return div.querySelector('.msg-body');
+}
+
+function addStreamMessage(label) {
+  const div = document.createElement('div');
+  div.className = 'msg npc';
+  div.innerHTML = `<span class="msg-label">${label}</span><div class="msg-body"><span class="cursor"></span></div>`;
+  chatWindow.appendChild(div);
+  scrollBottom();
+  const body = div.querySelector('.msg-body');
+  const cursor = body.querySelector('.cursor');
+  return { body, cursor };
+}
+
+function scrollBottom() {
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          .replace(/\n/g,'<br>');
+}
+
+// ── Send ──────────────────────────────────────────────────────────────────────
+async function sendMessage() {
+  if (!activeNPC || streaming) return;
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  autoResize();
+  streaming = true;
+  btnSend.disabled = true;
+
+  addMessage('player', 'You', text);
+
+  const { body: npcBody, cursor } = addStreamMessage(activeNPC.name);
+  let fullText = '';
+
+  try {
+    const resp = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        npc_id:     activeNPC.id,
+        message:    text,
+        session_id: SESSION_ID,
+        stream:     true,
+      }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      npcBody.textContent = `⚠ ${err.detail || 'Error'}`;
+      return;
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      fullText += chunk;
+      // Render with cursor at end
+      npcBody.innerHTML = escHtml(fullText) + '<span class="cursor"></span>';
+      scrollBottom();
+    }
+
+    // Final render without cursor
+    npcBody.innerHTML = escHtml(fullText);
+
+  } catch (e) {
+    npcBody.innerHTML = `<em>Connection error: ${e.message}. Is Ollama running?</em>`;
+  } finally {
+    streaming = false;
+    btnSend.disabled = false;
+    input.focus();
+    scrollBottom();
+  }
+}
+
+// ── Auto-resize textarea ──────────────────────────────────────────────────────
+function autoResize() {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+}
+
+input.addEventListener('input', autoResize);
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+btnSend.addEventListener('click', sendMessage);
+
+btnClear.addEventListener('click', async () => {
+  chatWindow.innerHTML = '<div class="msg system"><div class="msg-body">Conversation cleared. Choose a character and begin again.</div></div>';
+  if (activeNPC) {
+    await fetch(`/session/${SESSION_ID}`, { method: 'DELETE' }).catch(() => {});
+  }
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(async () => {
+  await Promise.all([checkHealth(), loadNPCs()]);
+})();
+</script>
+</body>
+</html>
